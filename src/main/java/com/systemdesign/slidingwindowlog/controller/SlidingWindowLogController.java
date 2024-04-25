@@ -2,7 +2,6 @@ package com.systemdesign.slidingwindowlog.controller;
 
 import com.systemdesign.slidingwindowlog.dto.response.SlidingWindowLogProfileResponse;
 import com.systemdesign.slidingwindowlog.dto.response.SlidingWindowLogResponse;
-import com.systemdesign.slidingwindowlog.exception.RateLimitExceededException;
 import com.systemdesign.slidingwindowlog.service.SlidingWindowLogService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -25,7 +24,7 @@ public class SlidingWindowLogController {
     @GetMapping
     public Mono<ResponseEntity<Flux<SlidingWindowLogResponse>>> findAllSlidingWindowLog() {
         return Mono.just(
-                ResponseEntity.ok()
+                ResponseEntity.status(OK)
                         .body(slidingWindowLogService.findAllSlidingWindowLog())
         );
     }
@@ -33,9 +32,6 @@ public class SlidingWindowLogController {
     @PostMapping
     public Mono<ResponseEntity<SlidingWindowLogProfileResponse>> createSlidingWindowLog() {
         return slidingWindowLogService.createSlidingWindowLog()
-                .map(response -> ResponseEntity.status(CREATED).body(response))
-                .onErrorResume(RateLimitExceededException.class, e ->
-                        Mono.just(ResponseEntity.status(TOO_MANY_REQUESTS).build())
-                );
+                .map(response -> ResponseEntity.status(CREATED).body(response));
     }
 }
