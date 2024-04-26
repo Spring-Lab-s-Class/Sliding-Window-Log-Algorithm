@@ -30,19 +30,16 @@ public class SlidingWindowLogService {
         log.info("Sliding Window log created. key: {}", redisKey);
 
         return redisTemplate.opsForZSet()
-                .add(redisKey, String.valueOf(currentTimestamp), currentTimestamp)
-                .flatMap(added -> redisTemplate.opsForZSet().removeRangeByScore(redisKey, Range.closed(0D,
-                        calculateTimeRange())))
-                .flatMap(removed -> redisTemplate.opsForZSet().count(redisKey,
-                        Range.closed(calculateTimeRange(), (double) currentTimestamp)))
+                .removeRangeByScore(redisKey, Range.closed(0D, calculateTimeRange()))
+                .flatMap(removed -> redisTemplate.opsForZSet().count(redisKey, Range.closed(calculateTimeRange(), (double) currentTimestamp)))
                 .flatMap(count -> {
-                    log.info("Sliding Window log count: {}", count);
-
                     if (count >= SLIDING_WINDOW_MAX_REQUEST) {
                         log.error("Rate limit exceeded. key: {}", redisKey);
                         return Mono.error(new RateLimitExceededException(RateExceptionCode.COMMON_TOO_MANY_REQUESTS, count));
                     }
-                    return Mono.just(SlidingWindowLogProfileResponse.from(List.of(SlidingWindowLogResponse.from(redisKey, count + 1))));
+                    return redisTemplate.opsForZSet()
+                            .add(redisKey, String.valueOf(currentTimestamp), currentTimestamp)
+                            .flatMap(added -> Mono.just(SlidingWindowLogProfileResponse.from(List.of(SlidingWindowLogResponse.from(redisKey, count + 1)))));
                 });
     }
 
