@@ -27,7 +27,7 @@ public class SlidingWindowLogService {
     public Mono<SlidingWindowLogProfileResponse> createSlidingWindowLog() {
         long currentTimestamp = System.currentTimeMillis();
         String redisKey = generateRedisKey("requests");
-        log.info("Sliding Window Counter created. key: {}", redisKey);
+        log.info("Sliding Window log created. key: {}", redisKey);
 
         return redisTemplate.opsForZSet()
                 .add(redisKey, String.valueOf(currentTimestamp), currentTimestamp)
@@ -36,7 +36,7 @@ public class SlidingWindowLogService {
                 .flatMap(removed -> redisTemplate.opsForZSet().count(redisKey,
                         Range.closed(calculateTimeRange(), (double) currentTimestamp)))
                 .flatMap(count -> {
-                    log.info("Sliding Window Counter count: {}", count);
+                    log.info("Sliding Window log count: {}", count);
 
                     if (count >= SLIDING_WINDOW_MAX_REQUEST) {
                         log.error("Rate limit exceeded. key: {}", redisKey);
@@ -49,12 +49,12 @@ public class SlidingWindowLogService {
     public Flux<SlidingWindowLogResponse> findAllSlidingWindowLog() {
         String redisKey = generateRedisKey("requests");
         long currentTimestamp = System.currentTimeMillis();
-        log.info("Sliding Window Counter find all. key: {}", redisKey);
+        log.info("Sliding Window log find all. key: {}", redisKey);
 
         return redisTemplate.opsForZSet().rangeByScore(redisKey,
                         Range.closed(calculateTimeRange(), (double) currentTimestamp))
                 .map(value -> {
-                    log.info("Sliding Window Counter value: {}", value);
+                    log.info("Sliding Window log value: {}", value);
                     return SlidingWindowLogResponse.from(redisKey, Long.parseLong((String) value));
                 });
     }
